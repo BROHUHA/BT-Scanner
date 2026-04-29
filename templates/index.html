@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="BT Scanner AI — Advanced Brain Tumor Classification System. Upload MRI scans for high-precision, AI-powered medical diagnostics with interactive Grad-CAM visualization.">
+    <title>BT Scanner AI </title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z'/><path d='M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z'/></svg>">
+</head>
+
+<body>
+
+    <!-- Particle Background -->
+    <canvas id="particle-canvas" aria-hidden="true"></canvas>
+
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="hover-border-fx">
+            <div class="fx-glow"></div>
+            <div class="fx-border"></div>
+        </div>
+        <div class="header-brand">
+            <div class="header-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path
+                        d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" />
+                    <path
+                        d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" />
+                </svg>
+            </div>
+            <div>
+                <div class="header-title">BT Scanner AI</div>
+                <div class="header-subtitle">Brain Tumor Classification System</div>
+            </div>
+        </div>
+        <div class="header-badge" id="status-badge">EfficientNet-B0 Active</div>
+    </header>
+
+    <!-- Main -->
+    <main class="main-container">
+        <div class="page-title fade-up">
+            <h1>MRI Brain Tumor Analysis</h1>
+            <p>Upload a brain MRI scan and our AI will classify the tumor type with Grad-CAM visualization</p>
+        </div>
+
+        <!-- Algorithm Selector -->
+        <div class="algo-selector-wrapper fade-up">
+            <div class="algo-selector-label">Select AI Model</div>
+            <button class="model-trigger" id="model-trigger" type="button">
+                <div class="model-trigger-icon" id="trigger-icon">
+                    <svg viewBox="0 0 24 24">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                </div>
+                <span class="model-trigger-text" id="trigger-text">EfficientNet-B0</span>
+                <svg class="model-trigger-chevron" viewBox="0 0 24 24">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+
+            <div class="algo-info-badge" id="algo-info-badge">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span id="algo-info-text">EfficientNet-B0 — Lightweight compound-scaled CNN optimised for
+                    efficiency</span>
+            </div>
+        </div>
+
+        <!-- Model Selection Modal -->
+        <div class="model-modal-overlay" id="model-modal-overlay">
+            <div class="model-modal" id="model-modal">
+                <div class="glass-border"></div>
+                <div class="model-modal-header">
+                    <h3>Select AI Model</h3>
+                    <button class="model-modal-close" id="model-modal-close" type="button">
+                        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="model-modal-grid">
+                    <div class="model-card active" data-algo="efficientnet" id="model-card-efficientnet">
+                        <div class="model-card-icon">
+                            <svg viewBox="0 0 24 24">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                            </svg>
+                        </div>
+                        <div class="model-card-info">
+                            <div class="model-card-name">EfficientNet-B0</div>
+                            <div class="model-card-desc">Lightweight compound-scaled CNN optimised for efficiency</div>
+                        </div>
+                        <div class="model-card-check">
+                            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                    </div>
+                    <div class="model-card" data-algo="resnet" id="model-card-resnet">
+                        <div class="model-card-icon">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                            </svg>
+                        </div>
+                        <div class="model-card-info">
+                            <div class="model-card-name">ResNet50</div>
+                            <div class="model-card-desc">50-layer deep residual network, proven accuracy on medical imaging</div>
+                        </div>
+                        <div class="model-card-check">
+                            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <section class="upload-section fade-up" id="upload-section">
+            <div class="glass-card">
+                <div class="glass-border"></div>
+                <div class="upload-zone" id="upload-zone">
+                    <div class="upload-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 10V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4" />
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                            <path d="M16 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2" />
+                            <path d="M20 14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2" />
+                        </svg>
+                    </div>
+                    <div class="upload-text">
+                        <h3>Drop your MRI scan here</h3>
+                        <p>or <span class="browse-link" id="browse-link">browse files</span> — PNG, JPG up to 10MB</p>
+                    </div>
+                </div>
+                <input type="file" id="file-input" accept="image/*">
+
+                <!-- Preview -->
+                <div class="preview-section" id="preview-section">
+                    <div class="preview-container">
+                        <img class="preview-image" id="preview-image" alt="Preview">
+                        <div class="preview-info">
+                            <div class="preview-name" id="preview-name">image.jpg</div>
+                            <div class="preview-size" id="preview-size">1.2 MB</div>
+                        </div>
+                        <button class="btn-remove" id="btn-remove" title="Remove file">
+                            <svg viewBox="0 0 24 24">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Analyze Button -->
+                <button class="btn-pearl" id="btn-analyze">
+                    <div class="wrap">
+                        <p>
+                            <span><svg viewBox="0 0 24 24">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg></span>
+                            <span style="color:var(--accent)"><svg viewBox="0 0 24 24">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg></span>
+                            Analyze MRI Scan
+                        </p>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section" id="results-section">
+            <div class="results-header">
+                <h2>Analysis Complete</h2>
+                <p>AI-powered classification results with attention visualization</p>
+            </div>
+
+            <!-- Prediction Card -->
+            <div class="glass-card prediction-card" id="prediction-card">
+                <div class="glass-border"></div>
+                <div class="prediction-label">Predicted Classification</div>
+                <div class="prediction-class" id="prediction-class">&mdash;</div>
+                <div class="prediction-confidence" id="prediction-confidence">
+                    <span id="confidence-value">0%</span>
+                </div>
+                <div>
+                    <div class="model-badge" id="algo-used-badge">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                        <span>Model: &mdash;</span>
+                    </div>
+                </div>
+                <div class="severity-bar" id="severity-bar">
+                    <div class="severity-label">Clinical Note</div>
+                    <div class="severity-info" id="severity-info">&mdash;</div>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div class="results-grid">
+                <div class="glass-card">
+                    <div class="glass-border"></div>
+                    <div class="section-title">
+                        <svg viewBox="0 0 24 24">
+                            <line x1="18" y1="20" x2="18" y2="10" />
+                            <line x1="12" y1="20" x2="12" y2="4" />
+                            <line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        Class Probabilities
+                    </div>
+                    <div class="prob-bars" id="prob-bars"></div>
+                </div>
+                <div class="glass-card">
+                    <div class="glass-border"></div>
+                    <div class="section-title">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        Grad-CAM Attention Map
+                    </div>
+                    <div class="image-comparison">
+                        <div class="image-panel">
+                            <div class="image-panel-label">Original MRI</div>
+                            <img id="result-original" alt="Original MRI" src="">
+                        </div>
+                        <div class="image-panel">
+                            <div class="image-panel-label">Model Attention</div>
+                            <img id="result-heatmap" alt="Grad-CAM Heatmap" src="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analyze Another -->
+            <div style="text-align: center; margin-top: 32px;">
+                <button class="btn-pearl btn-pearl--solid active" id="btn-new">
+                    <div class="wrap">
+                        <p>
+                            <span><svg viewBox="0 0 24 24">
+                                    <polyline points="23 4 23 10 17 10" />
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                                </svg></span>
+                            <span style="color:var(--accent)"><svg viewBox="0 0 24 24">
+                                    <polyline points="23 4 23 10 17 10" />
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                                </svg></span>
+                            Analyze Another Scan
+                        </p>
+                    </div>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay active" id="loading-overlay">
+        <div class="loader">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+                <defs>
+                    <mask id="clipping">
+                        <polygon points="0,0 100,0 100,100 0,100" fill="black"></polygon>
+                        <polygon points="25,25 75,25 50,75" fill="white"></polygon>
+                        <polygon points="50,25 75,75 25,75" fill="white"></polygon>
+                        <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                        <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                        <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                        <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                    </mask>
+                </defs>
+            </svg>
+            <div class="box"></div>
+        </div>
+        <div class="loading-text" id="loading-text">Initializing BT Scanner AI...</div>
+        <div class="loading-subtext" id="loading-subtext">Loading neural network models</div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="hover-border-fx">
+            <div class="fx-glow"></div>
+            <div class="fx-border"></div>
+        </div>
+        <div class="footer-content"
+            style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; max-width:1000px; margin:0 auto; width:100%; gap: 16px;">
+            <div class="footer-logo" style="display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" style="width:20px; height:20px;">
+                    <path
+                        d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" />
+                    <path
+                        d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" />
+                </svg>
+                <span style="font-weight:600; font-size:14px; color:var(--text-primary); letter-spacing:0.05em;">BT
+                    Scanner AI</span>
+            </div>
+            <p style="margin:0; font-size: 13px; text-align: left;">Powered by ResNet50 &amp; EfficientNet-B0 &bull; For
+                research purposes only</p>
+        </div>
+    </footer>
+
+    <script>
+        // ─── Particles ──────────────────────────────────────────────
+        (function initParticles() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            const particles = [];
+            const numParticles = Math.floor((width * height) / 15000);
+
+            for (let i = 0; i < numParticles; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    size: Math.random() * 1.5 + 0.5
+                });
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < 0 || p.x > width) p.vx *= -1;
+                    if (p.y < 0 || p.y > height) p.vy *= -1;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < 150) {
+                            ctx.beginPath();
+                            ctx.lineWidth = 1 - dist / 150;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        // ─── DOM Elements ───────────────────────────────────────────
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const browseLink = document.getElementById('browse-link');
+        const previewSection = document.getElementById('preview-section');
+        const previewImage = document.getElementById('preview-image');
+        const previewName = document.getElementById('preview-name');
+        const previewSize = document.getElementById('preview-size');
+        const btnRemove = document.getElementById('btn-remove');
+        const btnAnalyze = document.getElementById('btn-analyze');
+        const btnNew = document.getElementById('btn-new');
+        const resultsSection = document.getElementById('results-section');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const statusBadge = document.getElementById('status-badge');
+        const algoInfoBadge = document.getElementById('algo-info-badge');
+
+        let selectedFile = null;
+        let selectedAlgo = 'efficientnet';
+
+        const algoMeta = {
+            resnet: {
+                label: 'ResNet50',
+                loading: 'Analyzing MRI scan with ResNet50...',
+                status: 'ResNet50 Active',
+            },
+            efficientnet: {
+                label: 'EfficientNet-B0',
+                loading: 'Analyzing MRI scan with EfficientNet-B0...',
+                status: 'EfficientNet-B0 Active',
+            },
+        };
+
+        const algoBadgeText = {
+            resnet: 'ResNet50 \u2014 50-layer deep residual network, proven accuracy on medical imaging',
+            efficientnet: 'EfficientNet-B0 \u2014 Lightweight compound-scaled CNN optimised for efficiency',
+        };
+
+        // ─── Model Selection Modal ──────────────────────────────────
+        const modelTrigger = document.getElementById('model-trigger');
+        const triggerText = document.getElementById('trigger-text');
+        const triggerIcon = document.getElementById('trigger-icon');
+        const modalOverlay = document.getElementById('model-modal-overlay');
+        const modalClose = document.getElementById('model-modal-close');
+        const modelCards = document.querySelectorAll('.model-card');
+        const algoInfoText = document.getElementById('algo-info-text');
+
+        function openModal() {
+            modalOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeModal() {
+            modalOverlay.classList.add('closing');
+            setTimeout(() => {
+                modalOverlay.classList.remove('active', 'closing');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        modelTrigger.addEventListener('click', openModal);
+        modalClose.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        modelCards.forEach(card => {
+            card.addEventListener('click', () => {
+                modelCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+
+                selectedAlgo = card.dataset.algo;
+                const meta = algoMeta[selectedAlgo];
+
+                triggerText.textContent = meta.label;
+                statusBadge.textContent = meta.status;
+                algoInfoText.textContent = algoBadgeText[selectedAlgo];
+
+                // Update trigger icon
+                const svgHTML = card.querySelector('.model-card-icon svg').outerHTML;
+                triggerIcon.innerHTML = svgHTML;
+
+                closeModal();
+            });
+        });
+
+        // ─── Severity Info ──────────────────────────────────────────
+        const severityMap = {
+            'Glioma Tumor': 'Gliomas are tumors arising from glial cells. They can range from low-grade (slow-growing) to high-grade (aggressive). Further clinical evaluation with contrast MRI and biopsy is recommended.',
+            'Meningioma Tumor': 'Meningiomas arise from the meninges. They are typically benign (WHO Grade I) but may require monitoring or surgical intervention depending on size and location.',
+            'Pituitary Tumor': 'Pituitary tumors (adenomas) arise from the pituitary gland. Most are benign. Endocrine evaluation and visual field testing are recommended.',
+            'No Tumor': 'No tumor patterns detected in this MRI scan. The brain structures appear within normal limits based on AI analysis. Clinical correlation is always recommended.'
+        };
+
+        // ─── Upload Handlers ────────────────────────────────────────
+        browseLink.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault(); uploadZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', () => { if (fileInput.files.length > 0) handleFile(fileInput.files[0]); });
+        btnRemove.addEventListener('click', resetUpload);
+        btnNew.addEventListener('click', () => {
+            resultsSection.classList.remove('active');
+            resetUpload();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        btnAnalyze.addEventListener('click', analyzeScan);
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) { alert('Please upload an image file (PNG, JPG, etc.)'); return; }
+            if (file.size > 10 * 1024 * 1024) { alert('File too large. Maximum size is 10MB.'); return; }
+            selectedFile = file;
+            previewName.textContent = file.name;
+            previewSize.textContent = formatSize(file.size);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewSection.classList.add('active');
+                btnAnalyze.classList.add('active');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetUpload() {
+            selectedFile = null; fileInput.value = '';
+            previewSection.classList.remove('active');
+            btnAnalyze.classList.remove('active');
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // ─── Analysis ───────────────────────────────────────────────
+        async function analyzeScan() {
+            if (!selectedFile) return;
+            loadingText.textContent = algoMeta[selectedAlgo].loading;
+            loadingOverlay.classList.add('active');
+            btnAnalyze.disabled = true;
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('algorithm', selectedAlgo);
+            try {
+                const resp = await fetch('/predict', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.error) { alert('Error: ' + data.error); return; }
+                displayResults(data);
+            } catch (err) {
+                alert('Failed to analyze: ' + err.message);
+            } finally {
+                loadingOverlay.classList.add('fade-out');
+                setTimeout(() => {
+                    loadingOverlay.classList.remove('active');
+                    loadingOverlay.classList.remove('fade-out');
+                    btnAnalyze.disabled = false;
+                }, 600);
+            }
+        }
+
+        // ─── Display Results ────────────────────────────────────────
+        function displayResults(data) {
+            document.getElementById('prediction-class').textContent = data.predicted_class;
+
+            const confEl = document.getElementById('prediction-confidence');
+            const confValue = document.getElementById('confidence-value');
+            confValue.textContent = data.confidence + '%';
+            confEl.className = 'prediction-confidence';
+            if (data.confidence >= 80) confEl.classList.add('confidence-high');
+            else if (data.confidence >= 50) confEl.classList.add('confidence-medium');
+            else confEl.classList.add('confidence-low');
+
+            // Model badge
+            const badge = document.getElementById('algo-used-badge');
+            const badgeSvg = badge.querySelector('svg').outerHTML;
+            badge.innerHTML = badgeSvg + '<span>Model: ' + (data.algorithm_used || selectedAlgo) + '</span>';
+
+            document.getElementById('severity-info').textContent =
+                severityMap[data.predicted_class] || 'No additional information available.';
+
+            // Probability bars
+            const probBars = document.getElementById('prob-bars');
+            probBars.innerHTML = '';
+            const sorted = Object.entries(data.all_probs).sort((a, b) => b[1] - a[1]);
+            sorted.forEach(([name, prob], idx) => {
+                const isPred = name === data.predicted_class;
+                const item = document.createElement('div');
+                item.className = 'prob-item' + (isPred ? ' is-predicted' : '');
+                item.innerHTML = `
+                    <div class="prob-header">
+                        <span class="prob-name">${name}</span>
+                        <span class="prob-value">${prob}%</span>
+                    </div>
+                    <div class="prob-bar-bg">
+                        <div class="prob-bar-fill" style="width:0%"></div>
+                    </div>`;
+                probBars.appendChild(item);
+                setTimeout(() => { item.querySelector('.prob-bar-fill').style.width = prob + '%'; }, 100 + idx * 150);
+            });
+
+            document.getElementById('result-original').src = 'data:image/png;base64,' + data.original_image;
+            document.getElementById('result-heatmap').src = 'data:image/png;base64,' + data.heatmap_image;
+            resultsSection.classList.add('active');
+            setTimeout(() => { resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
+        }
+
+        // ─── Scroll Animations ──────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: "0px 0px -50px 0px"
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target); // Animate only once
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+        });
+        // ─── Initial Preloader ──────────────────────────────────────
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const overlay = document.getElementById('loading-overlay');
+                overlay.classList.add('fade-out');
+
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                    overlay.classList.remove('fade-out');
+
+                    // Reset text for MRI analysis
+                    document.getElementById('loading-text').textContent = "Analyzing MRI scan...";
+                    document.getElementById('loading-subtext').textContent = "Processing with neural network";
+                }, 600);
+            }, 2000);
+        });
+
+    </script>
+</body>
+
+</html>

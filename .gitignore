@@ -1,0 +1,22 @@
+# Dataset - too large for GitHub
+Training/
+Testing/
+
+# Model weights - too large for GitHub (use Google Drive/Hugging Face to share)
+models/*.pth
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
