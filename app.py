@@ -29,11 +29,11 @@ EFFICIENT_MODEL_PATH = os.path.join('models', 'best_model_efficientnet.pth')
 # Hugging Face download URLs (set via env vars or defaults)
 HF_EFFICIENTNET_URL = os.environ.get(
     'HF_EFFICIENTNET_URL',
-    'https://huggingface.co/BROHUHA/bt-scanner-models/resolve/main/best_model_efficientnet.pth'
+    'https://huggingface.co/abinbinoy/bt-scanner-models/resolve/main/best_model_efficientnet.pth'
 )
 HF_RESNET_URL = os.environ.get(
     'HF_RESNET_URL',
-    'https://huggingface.co/BROHUHA/bt-scanner-models/resolve/main/best_model.pth'
+    'https://huggingface.co/abinbinoy/bt-scanner-models/resolve/main/best_model.pth'
 )
 
 CLASSES = ['glioma', 'meningioma', 'notumor', 'pituitary']

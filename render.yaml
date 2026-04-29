@@ -8,5 +8,5 @@ services:
       - key: PYTHON_VERSION
         value: "3.11"
       - key: HF_EFFICIENTNET_URL
-        value: "https://huggingface.co/BROHUHA/bt-scanner-models/resolve/main/best_model_efficientnet.pth"
+        value: "https://huggingface.co/abinbinoy/bt-scanner-models/resolve/main/best_model_efficientnet.pth"
     plan: free
