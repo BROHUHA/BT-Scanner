@@ -13,15 +13,28 @@ from PIL import Image
 import torch
 from torchvision import transforms, models
 import torch.nn as nn
+import requests as http_requests
 
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from grad_cam import generate_gradcam_b64
 
 app = Flask(__name__)
+CORS(app)  # Allow cross-origin requests from Vercel frontend
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 RESNET_MODEL_PATH    = os.path.join('models', 'best_model.pth')
 EFFICIENT_MODEL_PATH = os.path.join('models', 'best_model_efficientnet.pth')
+
+# Hugging Face download URLs (set via env vars or defaults)
+HF_EFFICIENTNET_URL = os.environ.get(
+    'HF_EFFICIENTNET_URL',
+    'https://huggingface.co/BROHUHA/bt-scanner-models/resolve/main/best_model_efficientnet.pth'
+)
+HF_RESNET_URL = os.environ.get(
+    'HF_RESNET_URL',
+    'https://huggingface.co/BROHUHA/bt-scanner-models/resolve/main/best_model.pth'
+)
 
 CLASSES = ['glioma', 'meningioma', 'notumor', 'pituitary']
 CLASS_LABELS = {
@@ -73,6 +86,26 @@ def build_efficientnet_b0():
     return m
 
 
+def download_model(url, dest):
+    """Download model weights from Hugging Face Hub if not present locally."""
+    if os.path.exists(dest):
+        return
+    print(f"[*] Downloading model from {url} ...")
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    r = http_requests.get(url, stream=True, timeout=300)
+    r.raise_for_status()
+    total = int(r.headers.get('content-length', 0))
+    downloaded = 0
+    with open(dest, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=8192):
+            f.write(chunk)
+            downloaded += len(chunk)
+            if total:
+                pct = downloaded * 100 // total
+                print(f"\r[*] Downloading... {pct}%", end='', flush=True)
+    print(f"\n[+] Model saved to {dest}  ({downloaded / 1024 / 1024:.1f} MB)")
+
+
 def load_model(model_obj, path, label):
     """Load checkpoint weights into model_obj if the file exists."""
     if os.path.exists(path):
@@ -88,14 +121,25 @@ def load_model(model_obj, path, label):
     return model_obj
 
 
-# Load both models at startup
-resnet_model     = load_model(build_resnet50(),       RESNET_MODEL_PATH,    'ResNet50')
+# ─── Download & Load Models at Startup ───────────────────────────────────────
+# Download from Hugging Face if .pth files are not present (e.g. on Render)
+download_model(HF_EFFICIENTNET_URL, EFFICIENT_MODEL_PATH)
+
 efficientnet_model = load_model(build_efficientnet_b0(), EFFICIENT_MODEL_PATH, 'EfficientNet-B0')
 
+# ResNet50 is large (~270MB) — only load if the file exists locally
+# On Render free tier (512MB RAM), loading both will exceed memory
+if os.path.exists(RESNET_MODEL_PATH):
+    resnet_model = load_model(build_resnet50(), RESNET_MODEL_PATH, 'ResNet50')
+else:
+    resnet_model = None
+    print("[!] ResNet50 skipped (not available — free tier memory optimization)")
+
 MODELS = {
-    'resnet':      (resnet_model,       'resnet'),
     'efficientnet': (efficientnet_model, 'efficientnet'),
 }
+if resnet_model is not None:
+    MODELS['resnet'] = (resnet_model, 'resnet')
 
 
 # ─── Routes ──────────────────────────────────────────────────────────────────
@@ -159,4 +203,5 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)

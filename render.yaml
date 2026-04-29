@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: bt-scanner-api
+    runtime: python
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: HF_EFFICIENTNET_URL
+        value: "https://huggingface.co/BROHUHA/bt-scanner-models/resolve/main/best_model_efficientnet.pth"
+    plan: free
