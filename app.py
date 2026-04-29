@@ -189,24 +189,38 @@ def predict():
     model, algo_key = MODELS[algorithm]
 
     try:
+        import gc
+        gc.collect()
+
         image_bytes = file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
+        # Resize large images to save memory (max 512x512 for processing)
+        max_dim = 512
+        if max(image.size) > max_dim:
+            image.thumbnail((max_dim, max_dim), Image.LANCZOS)
+
         # Original image → base64
         buf = io.BytesIO()
-        image.save(buf, format='PNG')
+        image.save(buf, format='JPEG', quality=85)
         buf.seek(0)
         original_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
 
-        # Try Grad-CAM first, fallback to lightweight prediction if OOM
-        import gc
+        del image_bytes, buf
         gc.collect()
-        try:
-            result = generate_gradcam_b64(model, image, preprocess, DEVICE, CLASSES, algorithm=algo_key)
-        except (RuntimeError, MemoryError) as mem_err:
-            print(f"[!] Grad-CAM failed ({mem_err}), falling back to predict_only")
-            gc.collect()
+
+        # Use predict_only on Render (SKIP_GRADCAM=1) to save memory
+        skip_gradcam = os.environ.get('SKIP_GRADCAM', '0') == '1'
+
+        if skip_gradcam:
             result = predict_only(model, image, preprocess, DEVICE, CLASSES)
+        else:
+            try:
+                result = generate_gradcam_b64(model, image, preprocess, DEVICE, CLASSES, algorithm=algo_key)
+            except (RuntimeError, MemoryError) as mem_err:
+                print(f"[!] Grad-CAM failed ({mem_err}), falling back to predict_only")
+                gc.collect()
+                result = predict_only(model, image, preprocess, DEVICE, CLASSES)
 
         algo_labels = {
             'resnet':      'ResNet50',
@@ -223,10 +237,11 @@ def predict():
                 for k, v in result['all_probs'].items()
             },
             'original_image':  original_b64,
-            'heatmap_image':   result['heatmap_b64'] if result['heatmap_b64'] else original_b64,
+            'heatmap_image':   result['heatmap_b64'] if result.get('heatmap_b64') else original_b64,
             'algorithm_used':  algo_labels.get(algorithm, algorithm),
         }
 
+        del result, image
         gc.collect()
         return jsonify(response)
 
