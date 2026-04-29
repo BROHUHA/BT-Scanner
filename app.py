@@ -142,11 +142,34 @@ if resnet_model is not None:
     MODELS['resnet'] = (resnet_model, 'resnet')
 
 
+# ─── Error Handlers (always return JSON, never HTML) ─────────────────────────
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({'error': 'Not found'}), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({'error': f'Internal server error: {e}'}), 500
+
+
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/health')
+def health():
+    """Health check — shows which models are loaded."""
+    return jsonify({
+        'status': 'ok',
+        'device': str(DEVICE),
+        'models_loaded': list(MODELS.keys()),
+        'efficientnet_file_exists': os.path.exists(EFFICIENT_MODEL_PATH),
+        'resnet_file_exists': os.path.exists(RESNET_MODEL_PATH),
+    })
 
 
 @app.route('/predict', methods=['POST'])
@@ -158,9 +181,10 @@ def predict():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    algorithm = request.form.get('algorithm', 'resnet')
+    algorithm = request.form.get('algorithm', 'efficientnet')
     if algorithm not in MODELS:
-        return jsonify({'error': f'Unknown algorithm: {algorithm}'}), 400
+        available = list(MODELS.keys())
+        return jsonify({'error': f'Unknown algorithm: {algorithm}. Available: {available}'}), 400
 
     model, algo_key = MODELS[algorithm]
 
