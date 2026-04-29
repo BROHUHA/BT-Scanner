@@ -95,12 +95,22 @@ def create_heatmap_overlay(original_image, heatmap, alpha=0.5):
 
 
 def generate_gradcam_b64(model, image_pil, transform, device, classes, algorithm='resnet'):
+    import gc
     input_tensor = transform(image_pil).unsqueeze(0).to(device)
     target_layer = _get_target_layer(model, algorithm)
     grad_cam = GradCAM(model, target_layer)
     heatmap, pred_idx, class_probs = grad_cam.generate(input_tensor)
     grad_cam.remove_hooks()
+
+    # Free gradient memory immediately
+    del input_tensor
+    gc.collect()
+
     heatmap_b64 = create_heatmap_overlay(image_pil, heatmap, alpha=0.5)
+
+    del heatmap
+    gc.collect()
+
     return {
         'heatmap_b64': heatmap_b64,
         'predicted_class': classes[pred_idx],
@@ -108,3 +118,26 @@ def generate_gradcam_b64(model, image_pil, transform, device, classes, algorithm
         'confidence': float(class_probs[pred_idx]),
         'all_probs': {classes[i]: float(class_probs[i]) for i in range(len(classes))},
     }
+
+
+def predict_only(model, image_pil, transform, device, classes):
+    """Lightweight prediction without Grad-CAM — uses minimal memory."""
+    import gc
+    input_tensor = transform(image_pil).unsqueeze(0).to(device)
+    with torch.no_grad():
+        output = model(input_tensor)
+        probs = F.softmax(output, dim=1)
+        class_probs = probs[0].cpu().numpy()
+        pred_idx = int(probs.argmax(dim=1).item())
+
+    del input_tensor, output, probs
+    gc.collect()
+
+    return {
+        'heatmap_b64': None,
+        'predicted_class': classes[pred_idx],
+        'predicted_index': pred_idx,
+        'confidence': float(class_probs[pred_idx]),
+        'all_probs': {classes[i]: float(class_probs[i]) for i in range(len(classes))},
+    }
+

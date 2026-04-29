@@ -17,7 +17,7 @@ import requests as http_requests
 
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-from grad_cam import generate_gradcam_b64
+from grad_cam import generate_gradcam_b64, predict_only
 
 app = Flask(__name__)
 CORS(app)  # Allow cross-origin requests from Vercel frontend
@@ -198,15 +198,22 @@ def predict():
         buf.seek(0)
         original_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
 
-        # Prediction + Grad-CAM
-        result = generate_gradcam_b64(model, image, preprocess, DEVICE, CLASSES, algorithm=algo_key)
+        # Try Grad-CAM first, fallback to lightweight prediction if OOM
+        import gc
+        gc.collect()
+        try:
+            result = generate_gradcam_b64(model, image, preprocess, DEVICE, CLASSES, algorithm=algo_key)
+        except (RuntimeError, MemoryError) as mem_err:
+            print(f"[!] Grad-CAM failed ({mem_err}), falling back to predict_only")
+            gc.collect()
+            result = predict_only(model, image, preprocess, DEVICE, CLASSES)
 
         algo_labels = {
             'resnet':      'ResNet50',
             'efficientnet': 'EfficientNet-B0',
         }
 
-        return jsonify({
+        response = {
             'success':         True,
             'predicted_class': CLASS_LABELS.get(result['predicted_class'], result['predicted_class']),
             'predicted_key':   result['predicted_class'],
@@ -216,9 +223,12 @@ def predict():
                 for k, v in result['all_probs'].items()
             },
             'original_image':  original_b64,
-            'heatmap_image':   result['heatmap_b64'],
+            'heatmap_image':   result['heatmap_b64'] if result['heatmap_b64'] else original_b64,
             'algorithm_used':  algo_labels.get(algorithm, algorithm),
-        })
+        }
+
+        gc.collect()
+        return jsonify(response)
 
     except Exception as e:
         import traceback
